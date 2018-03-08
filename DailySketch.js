@@ -9,6 +9,7 @@ const Command = require('./Command');
 // JSONs
 const CONFIG = require('./jsons/config');
 var topics = require('./jsons/topics');
+var submissions = require('./jsons/submissions');
 
 
 module.exports = class DailySketch {
@@ -26,34 +27,140 @@ module.exports = class DailySketch {
     });
     this._bot = discord_client;
 
-    //schedule.scheduleJob({second: 10}, ()=>{
-    setInterval(()=>{
+    // posts a new topic at midnight
+    schedule.scheduleJob({hour: 00, minute: 00}, ()=>{
       this.postRandomTopic();
-    //});
-    }, 15000);
+    });
 
     let prefix = CONFIG.command_prefix;
     this.commands = [
       new Command({
-          regex: `^${prefix}test`,
-          description: `${prefix}test - this is test`, 
-          execute: message => {
-              //this.postRandomTopic();
+        regex: `^${prefix}skipTopic$`,
+        description: `\`${prefix}skipTopic\` - skips the current topic (admin only)`, 
+        execute: (message) => {
+          if (message.author.id == CONFIG.admin_id) {
+            message.channel.send('Finding new topic...').then(() => {
+              this.postRandomTopic();
+            });
+          } else{
+            message.reply('You cannot use this command.');
           }
+        }
+      }),
+      new Command({
+        regex: `^${prefix}topic`,
+        description: `\`${prefix}topic\` - displays today's topic`,
+        execute: (message) => {
+          let dateToday = this.getDate();
+          let topic = topics.topics[dateToday];
+          message.channel.send(`${topic.title}\n${topic.image}`);
+        }
+      }),
+      new Command({
+        regex: `^${prefix}topics$`,
+        description: `\`${prefix}topics\` - lists the previous topics`,
+        execute: (message) => {
+          let topicList = [];
+
+          for (var t in topics.topics){
+            topicList.push(`\`${t}\` - ${topics.topics[t].title}`);
+          }
+
+          topicList.sort();
+
+          message.channel.send(topicList.join('\n'));
+        }
+      }),
+      new Command({
+        regex: `^${prefix}submit( .*)?$`,
+        description: `\`${prefix}submit <link|attachement>\` - archives your submission for the day.`,
+        execute: (message, matches) => {
+          var embeds = message.embeds;
+          var attachments = message.attachments.array();
+
+          // accept the message only if there are either
+          //   1 embed 
+          // xor
+          //   1 attachement
+          if (embeds.length == 1 ^ attachments.length == 1) {
+            if (embeds[0]){
+              if (embeds[0].type === 'image'){
+                var submissionURL = embeds[0].url;
+              }
+            } else if (attachments[0]){
+              // attachements do not seem to have a type identifier
+              var submissionURL = attachments[0].url;
+            }
+
+            let user_id = message.author.id;
+            let dateToday = this.getDate();
+            let topic = topics.topics[dateToday].title;
+
+            if (!(submissions.submissions.hasOwnProperty(user_id))){
+              submissions.submissions[user_id] = {};
+            }
+            submissions.submissions[user_id][dateToday] = {
+              topic: topic,
+              url: submissionURL
+            };
+
+            this._saveJSON('submissions',submissions);
+              
+            message.channel.send('```json\n'+JSON.stringify(submissions, null, 4)+'```');
+          } else {
+            return message.channel.send(
+              `To use the submit command type either:\n`+
+              `\`~submit <url-to-image>\`\n`+
+              `or\n`+
+              `\`~submit\` (and send the image as an attachement)`);
+          }
+        } 
+      }),
+      new Command({
+        regex: `^${prefix}submissions <@!?(\\d+)>( (\\d{4}-\\d\\d-\\d\\d))?$`,
+        description: `\`${prefix}submissions @<user> <submission date>\` - shows `+
+                     `the submission by the user at a given date\n`+
+                     `    you can see the topics of a given date with ${prefix}topics`,
+        execute: (message, matches) =>{
+          let user_id = matches[1];
+          let date = matches[3];
+          let sub = submissions.submissions;
+
+          if (date){
+            if (sub.hasOwnProperty(user_id) && sub[user_id].hasOwnProperty(date)){
+              return message.reply(
+                `\n${date} - ${submissions.submissions[user_id][date].topic}\n`+
+                `${submissions.submissions[user_id][date].url}`);
+            } else {
+              return message.reply(`The user has not submitted a sketch on ${date}.`);
+            }
+          } else if (sub.hasOwnProperty(user_id)){
+            let result = '\n';
+            for (let topic in sub[user_id]){
+              result += `\`${topic}\` - ${sub[user_id][topic].topic}\n`;
+            }
+            return message.reply(result);
+          } else {
+            return message.reply(`The user has not submitted any sketches.`);
+          }
+        }
       })
     ];
 
     this._bot.on('message', message => {
+      console.log(message);
       let helpRe = new RegExp(`${prefix}help`);
       if (helpRe.test(message.content)){
         let result = 'Here is a list of commands:\n';
         for (let i = 0; i < this.commands.length; i++){
           result += `\t${this.commands[i].description}\n`;
         }
-        message.reply(result);
+        message.channel.send(result);
       }
       for (let i = 0; i < this.commands.length; i++){
-        this.commands[i].execute(message);
+        this.commands[i].execute(
+          message, this.commands[i].regex.exec(message.content)
+        );
       }
     });
   }
@@ -66,7 +173,7 @@ module.exports = class DailySketch {
     // add random_id to the ids that have already been done
     topics.done[random_id] = null;
 
-    this._anilist.auth().then(res=>{
+    return this._anilist.auth().then(res=>{
       return this._anilist.anime.getAnime(random_id)
       .then(res=>{
         // exclude mangas and adult anime
@@ -75,7 +182,7 @@ module.exports = class DailySketch {
         }
 
         // save today's topic
-        let dateToday = new Date().toISOString().split('T')[0];
+        let dateToday = this.getDate();
         topics.topics[dateToday] = {
           id: random_id,
           title: res.title_english,
@@ -86,12 +193,17 @@ module.exports = class DailySketch {
         var msg = `${res.title_english}\n${res.image_url_lge}`;
 
 
-
-        this._bot.channels.get(CONFIG.channel_id).send(msg);
+        let channel = this._bot.channels.get(CONFIG.channel_id);
+        channel.send(msg);
+        channel.setTopic(`Today's topic: ${res.title_english}`);
       });
     }).catch(err=>{
       this.postRandomTopic();
     });
+  }
+
+  getDate(){
+    return new Date().toISOString().split('T')[0];
   }
 
   _saveJSON(filename, obj){

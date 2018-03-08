@@ -5,9 +5,9 @@ module.exports = class Command {
       this.regex = new RegExp(regex);
     }
     this.description = description;
-    this.execute = message => {
+    this.execute = (message, matches) => {
       if (this.regex.test(message.content)){
-        execute(message);
+        execute(message, matches);
       }
     };
   }
