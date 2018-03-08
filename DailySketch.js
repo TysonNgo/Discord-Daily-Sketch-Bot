@@ -48,7 +48,7 @@ module.exports = class DailySketch {
         }
       }),
       new Command({
-        regex: `^${prefix}topic`,
+        regex: `^${prefix}topic$`,
         description: `\`${prefix}topic\` - displays today's topic`,
         execute: (message) => {
           let dateToday = this.getDate();
@@ -206,6 +206,6 @@ module.exports = class DailySketch {
   }
 
   _saveJSON(filename, obj){
-    fs_writeFile(__dirname+'jsons/'+filename+'.json', JSON.stringify(obj), function(err){});
+    fs_writeFile(__dirname+'/jsons/'+filename+'.json', JSON.stringify(obj), function(err){});
   }
 }
