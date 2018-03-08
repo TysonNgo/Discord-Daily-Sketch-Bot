@@ -28,7 +28,7 @@ module.exports = class DailySketch {
     this._bot = discord_client;
 
     // posts a new topic at midnight
-    schedule.scheduleJob({hour: 00, minute: 00}, ()=>{
+    schedule.scheduleJob({hour: 0, minute: 0}, ()=>{
       this.postRandomTopic();
     });
 
@@ -148,7 +148,6 @@ module.exports = class DailySketch {
     ];
 
     this._bot.on('message', message => {
-      console.log(message);
       let helpRe = new RegExp(`${prefix}help`);
       if (helpRe.test(message.content)){
         let result = 'Here is a list of commands:\n';
