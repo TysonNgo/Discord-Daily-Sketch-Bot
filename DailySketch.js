@@ -106,7 +106,7 @@ module.exports = class DailySketch {
 
             this._saveJSON('submissions',submissions);
               
-            message.channel.send('```json\n'+JSON.stringify(submissions, null, 4)+'```');
+            message.reply('submission successful.');
           } else {
             return message.channel.send(
               `To use the submit command type either:\n`+
