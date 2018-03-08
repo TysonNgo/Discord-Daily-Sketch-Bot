@@ -206,6 +206,6 @@ module.exports = class DailySketch {
   }
 
   _saveJSON(filename, obj){
-    fs_writeFile('jsons/'+filename+'.json', JSON.stringify(obj), function(err){});
+    fs_writeFile(__dirname+'jsons/'+filename+'.json', JSON.stringify(obj), function(err){});
   }
 }
