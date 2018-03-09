@@ -175,8 +175,8 @@ module.exports = class DailySketch {
     return this._anilist.auth().then(res=>{
       return this._anilist.anime.getAnime(random_id)
       .then(res=>{
-        // exclude mangas and adult anime
-        if (res.adult || res.series_type === 'manga'){
+        // exclude mangas, adult anime, and movies
+        if (res.adult || res.series_type === 'manga' || res.type === 'Movie'){
           return this.postRandomTopic()
         }
 
