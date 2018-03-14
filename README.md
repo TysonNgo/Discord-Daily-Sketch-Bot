@@ -9,6 +9,7 @@ Modify the applicable fields in `./jsons/config.json`:
 * `max_id` - this value is used to obtain a random anime ID from Anilist (it does not need to be changed)
 * `channel_id` - set this value to the Discord channel ID in which you would like the bot to send the topic
 * `admin_id` - set this value to the Discord user ID of the user that is able to skip the current topic
+* `new_topic_time` - set this value (cron time string) to the time you want the topic to change (default is set to midnight)
 * `command_prefix` - self-explanatory, the command prefix (ie. to use the topic command send "~topic")
 
 After modifying the config file and installing the necessary dependencies (`npm install`), you can run the main Javascript file, but first you need to set some environment variables:

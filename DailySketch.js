@@ -28,7 +28,7 @@ module.exports = class DailySketch {
     this._bot = discord_client;
 
     // posts a new topic at midnight
-    schedule.scheduleJob({hour: 0, minute: 0}, ()=>{
+    schedule.scheduleJob(CONFIG.new_topic_time, ()=>{
       this.postRandomTopic();
     });
 

@@ -2,5 +2,6 @@
     "max_id": 100000,
     "admin_id": "",
     "channel_id": "",
+    "new_topic_time": "0 0 * * *",
     "command_prefix": "~"
 }
