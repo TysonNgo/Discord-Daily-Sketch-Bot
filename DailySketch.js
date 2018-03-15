@@ -1,4 +1,5 @@
 const AniListApi = require('anilist-api-pt');
+const cronParser = require('cron-parser');
 const fs = require('fs');
 const schedule = require('node-schedule');
 const util = require('util');
@@ -21,14 +22,17 @@ module.exports = class DailySketch {
       throw new Error('Anilist client ID or client secret was not provided.');
     }
 
+
+
     this._anilist = new AniListApi({
       client_id: anilist_client_id,
       client_secret: anilist_client_secret
     });
     this._bot = discord_client;
 
+    this._newTopicTime = cronParser.parseExpression(CONFIG.new_topic_time);
     // posts a new topic at midnight
-    schedule.scheduleJob(CONFIG.new_topic_time, ()=>{
+    this._schedule = schedule.scheduleJob(CONFIG.new_topic_time, ()=>{
       this.postRandomTopic();
     });
 
@@ -53,7 +57,12 @@ module.exports = class DailySketch {
         execute: (message) => {
           let dateToday = this.getDate();
           let topic = topics.topics[dateToday];
-          message.channel.send(`${topic.title}\n${topic.image}`);
+          let hoursLeftTilReset = 
+            Math.ceil((this._newTopicTime.next()._date - new Date())/3600000);
+          message.channel.send(
+          	`**Under ${hoursLeftTilReset} ` +
+          	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
+          	`${topic.title}\n${topic.image}`);
         }
       }),
       new Command({
@@ -75,9 +84,13 @@ module.exports = class DailySketch {
         regex: `^${prefix}submit( .*)?$`,
         description: `\`${prefix}submit <link|attachement>\` - archives your submission for the day.`,
         execute: (message, matches) => {
-          var embeds = message.embeds;
-          var attachments = message.attachments.array();
-
+          let embeds = message.embeds;
+          let attachments = message.attachments.array();
+          let wrongUsage =
+	      	  `To use the submit command type either:\n`+
+	          `\`${prefix}submit <url-to-image>\`\n`+
+	          `or\n`+
+	          `\`${prefix}submit\` (and send the image as an attachement)`;
           // accept the message only if there are either
           //   1 embed 
           // xor
@@ -86,6 +99,8 @@ module.exports = class DailySketch {
             if (embeds[0]){
               if (embeds[0].type === 'image'){
                 var submissionURL = embeds[0].url;
+              } else {
+              	return message.channel.send(wrongUsage);
               }
             } else if (attachments[0]){
               // attachements do not seem to have a type identifier
@@ -108,11 +123,7 @@ module.exports = class DailySketch {
               
             message.reply('submission successful.');
           } else {
-            return message.channel.send(
-              `To use the submit command type either:\n`+
-              `\`~submit <url-to-image>\`\n`+
-              `or\n`+
-              `\`~submit\` (and send the image as an attachement)`);
+            return message.channel.send(wrongUsage);
           }
         } 
       }),
@@ -195,7 +206,7 @@ module.exports = class DailySketch {
         let channel = this._bot.channels.get(CONFIG.channel_id);
         channel.send(msg);
         channel.setTopic(`Today's topic: ${res.title_english}`);
-      });
+      })
     }).catch(err=>{
       this.postRandomTopic();
     });
