@@ -56,6 +56,7 @@ client.login(process.env.DISCORD_TOKEN);
 {
     "max_id": 100000, // maximum id to obtain a random ID from Anilist
     "channel_id": "100000000000000000", // channel id to post topics to
+    "new_topic_time": "0 0 * * *", // cron format 
     "admin_id": "100000000000000000", // user id
     "command_prefix": "~"
 }
