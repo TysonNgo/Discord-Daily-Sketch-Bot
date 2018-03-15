@@ -208,7 +208,7 @@ module.exports = class DailySketch {
         channel.setTopic(`Today's topic: ${res.title_english}`);
       })
     }).catch(err=>{
-      this.postRandomTopic();
+      return this.postRandomTopic();
     });
   }
 

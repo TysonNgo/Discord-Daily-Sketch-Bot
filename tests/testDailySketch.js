@@ -14,7 +14,7 @@ class DiscordClient {
   constructor(){
     this.channels = {}
     this.channels.get = id => {
-      return new Channel(conifg.channel_id);
+      return new Channel(config.channel_id);
     }
     this.messageEventCallbacks = [];
   }
@@ -166,10 +166,12 @@ test('Test skipTopic command', t => {
   t.equal(msgs.pop(), 'You cannot use this command.');
   userAdmin.sendMessage(`${prefix}skipTopic`);
   setTimeout(() => {
-    if (msgs.length == 2 && msgs[0] === 'Finding new topic...'){
-      t.pass(`'${prefix}skipTopic' sent by an admin user works as intended`);
-    } else{
-      t.fail(`'${prefix}skipTopic' sent by an admin user does not work as intended`);
+    if (msgs[0] === 'Finding new topic...'){
+      if (msgs[1]){
+        t.pass(`'${prefix}skipTopic' sent by an admin user works as intended`);
+      } else{
+        t.fail(`'${prefix}skipTopic' sent by an admin user does not work as intended`);
+      }
     }
     t.end();
   }, 1000);
