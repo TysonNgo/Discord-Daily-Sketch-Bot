@@ -69,8 +69,8 @@ module.exports = class DailySketch {
         execute: (message) => {
           let topicList = [];
 
-          for (var t in topics.topics){
-            topicList.push(`\`${t}\` - ${topics.topics[t].title}`);
+          for (var id in topics.topics){
+            topicList.push(`**[${topics.topics[id].date.split('T')[0]}]** \`${id}\` - ${topics.topics[id].title}`);
           }
 
           topicList.sort();
@@ -244,6 +244,6 @@ module.exports = class DailySketch {
   }
 
   _saveJSON(filename, obj){
-    fs_writeFile(__dirname+'/jsons/'+filename+'.json', JSON.stringify(obj), function(err){});
+    fs_writeFile(__dirname+'/jsons/'+filename+'.json', JSON.stringify(obj, null, 4), function(err){});
   }
 }
