@@ -106,14 +106,12 @@ module.exports = class DailySketch {
             }
 
             let user_id = message.author.id;
-            let dateToday = this.getDate();
-            let topic = topics.topics[dateToday].title;
+            let topic = this.getLatestTopic();
 
             if (!(submissions.submissions.hasOwnProperty(user_id))){
               submissions.submissions[user_id] = {};
             }
-            submissions.submissions[user_id][dateToday] = {
-              topic: topic,
+            submissions.submissions[user_id][topic.id] = {
               url: submissionURL
             };
 
@@ -220,6 +218,29 @@ module.exports = class DailySketch {
 
   getDate(){
     return new Date().toJSON();
+  }
+
+  getLatestTopic(){
+  	let theTopics = topics.topics;
+  	let date;
+  	let id;
+  	let topic;
+  	for (let t in theTopics){
+  		let newDate = new Date(theTopics[t].date);
+  		if (!date){
+  			id = t;
+  			date = newDate;
+  			topic = theTopics[t];
+  		} else if (newDate > date){
+  			date = newDate;
+  			id = t;
+  			topic = theTopics[t];
+  		}
+  	}
+  	return {
+  		id: id,
+  		topic: topic
+  	};
   }
 
   _saveJSON(filename, obj){
