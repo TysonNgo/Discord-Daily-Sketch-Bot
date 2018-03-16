@@ -53,14 +53,13 @@ module.exports = class DailySketch {
         regex: `^${prefix}topic$`,
         description: `\`${prefix}topic\` - displays today's topic`,
         execute: (message) => {
-          let dateToday = this.getDate();
-          let topic = topics.topics[dateToday];
+          let t = this.getLatestTopic();
           let hoursLeftTilReset = 
             Math.ceil((this._newTopicTime.next()._date - new Date())/3600000);
           message.channel.send(
           	`**Under ${hoursLeftTilReset} ` +
           	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
-          	`${topic.title}\n${topic.image}`);
+          	`${t.topic.title}\n${t.topic.image}`);
         }
       }),
       new Command({
