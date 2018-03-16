@@ -22,8 +22,6 @@ module.exports = class DailySketch {
       throw new Error('Anilist client ID or client secret was not provided.');
     }
 
-
-
     this._anilist = new AniListApi({
       client_id: anilist_client_id,
       client_secret: anilist_client_secret
@@ -55,14 +53,13 @@ module.exports = class DailySketch {
         regex: `^${prefix}topic$`,
         description: `\`${prefix}topic\` - displays today's topic`,
         execute: (message) => {
-          let dateToday = this.getDate();
-          let topic = topics.topics[dateToday];
+          let t = this.getLatestTopic();
           let hoursLeftTilReset = 
             Math.ceil((this._newTopicTime.next()._date - new Date())/3600000);
           message.channel.send(
           	`**Under ${hoursLeftTilReset} ` +
           	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
-          	`${topic.title}\n${topic.image}`);
+          	`${t.topic.title}\n${t.topic.image}`);
         }
       }),
       new Command({
@@ -71,8 +68,8 @@ module.exports = class DailySketch {
         execute: (message) => {
           let topicList = [];
 
-          for (var t in topics.topics){
-            topicList.push(`\`${t}\` - ${topics.topics[t].title}`);
+          for (var id in topics.topics){
+            topicList.push(`**[${topics.topics[id].date.split('T')[0]}]** \`${id}\` - ${topics.topics[id].title}`);
           }
 
           topicList.sort();
@@ -108,14 +105,12 @@ module.exports = class DailySketch {
             }
 
             let user_id = message.author.id;
-            let dateToday = this.getDate();
-            let topic = topics.topics[dateToday].title;
+            let topic = this.getLatestTopic();
 
             if (!(submissions.submissions.hasOwnProperty(user_id))){
               submissions.submissions[user_id] = {};
             }
-            submissions.submissions[user_id][dateToday] = {
-              topic: topic,
+            submissions.submissions[user_id][topic.id] = {
               url: submissionURL
             };
 
@@ -128,29 +123,38 @@ module.exports = class DailySketch {
         } 
       }),
       new Command({
-        regex: `^${prefix}submissions <@!?(\\d+)>( (\\d{4}-\\d\\d-\\d\\d))?$`,
+        regex: `^${prefix}submissions <@!?(\\d+)>( (\\d+))?$`,
         description: `\`${prefix}submissions @<user> <submission date>\` - shows `+
                      `the submission by the user at a given date\n`+
                      `    you can see the topics of a given date with ${prefix}topics`,
         execute: (message, matches) =>{
           let user_id = matches[1];
-          let date = matches[3];
+          let anilist_id = matches[3];
           let sub = submissions.submissions;
 
-          if (date){
-            if (sub.hasOwnProperty(user_id) && sub[user_id].hasOwnProperty(date)){
+
+          if (anilist_id){
+            if (sub.hasOwnProperty(user_id) && sub[user_id].hasOwnProperty(anilist_id)){
+		          let topic = topics.topics[anilist_id];
+		          let date = topic.date.split('T')[0];
+		          let title = topic.title;
               return message.reply(
-                `\n${date} - ${submissions.submissions[user_id][date].topic}\n`+
-                `${submissions.submissions[user_id][date].url}`);
+                `\n**[${date}]** \`${anilist_id}\` - ${title}\n`+
+                `${sub[user_id][anilist_id].url}`);
             } else {
-              return message.reply(`The user has not submitted a sketch on ${date}.`);
+              return message.reply(`The user has not submitted a sketch for id: \`${anilist_id}.\``);
             }
           } else if (sub.hasOwnProperty(user_id)){
-            let result = '\n';
-            for (let topic in sub[user_id]){
-              result += `\`${topic}\` - ${sub[user_id][topic].topic}\n`;
+            let topic = topics.topics;
+            let theTopics = [];
+            for (let a_id in sub[user_id]){
+              theTopics.push(`**[${topic[a_id].date.split('T')[0]}]** \`${a_id}\` - ${topic[a_id].title}`);
             }
-            return message.reply(result);
+
+            theTopics.sort();
+            let msg = '\n'+theTopics.join('\n');
+
+            return message.reply(msg);
           } else {
             return message.reply(`The user has not submitted any sketches.`);
           }
@@ -192,9 +196,8 @@ module.exports = class DailySketch {
         }
 
         // save today's topic
-        let dateToday = this.getDate();
-        topics.topics[dateToday] = {
-          id: random_id,
+        topics.topics[random_id] = {
+          date: this.getDate(),
           title: res.title_english,
           image: res.image_url_lge
         };
@@ -213,10 +216,30 @@ module.exports = class DailySketch {
   }
 
   getDate(){
-    let d = new Date();
-    return d.getFullYear() + "-" +
-     ("0"+(d.getMonth()+1)).slice(-2) + "-" +
-    ("0" + d.getDate()).slice(-2);
+    return new Date().toJSON();
+  }
+
+  getLatestTopic(){
+  	let theTopics = topics.topics;
+  	let date;
+  	let id;
+  	let topic;
+  	for (let t in theTopics){
+  		let newDate = new Date(theTopics[t].date);
+  		if (!date){
+  			id = t;
+  			date = newDate;
+  			topic = theTopics[t];
+  		} else if (newDate > date){
+  			date = newDate;
+  			id = t;
+  			topic = theTopics[t];
+  		}
+  	}
+  	return {
+  		id: id,
+  		topic: topic
+  	};
   }
 
   _saveJSON(filename, obj){

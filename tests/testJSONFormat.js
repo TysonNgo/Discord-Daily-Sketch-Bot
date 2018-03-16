@@ -76,12 +76,17 @@ test(('Test topics.json format'), t => {
     },
     "topics": v => {
       if (v instanceof Object){
-        for (let topic in v){
+        for (let id in v){
           if (!(
-            /^\d{4}-\d\d-\d\d$/.test(topic) &&
-            Number.isInteger(v[topic].id) &&
-            typeof(v[topic].title) === 'string' &&
-            typeof(v[topic].title) === 'string'
+            ////// old format; topic = id
+            // /^\d{4}-\d\d-\d\d$/.test(topic) &&
+            // Number.isInteger(v[topic].id) &&
+            // typeof(v[topic].title) === 'string' &&
+            // typeof(v[topic].image) === 'string'
+            /^\d+$/.test(id) &&
+            /^\d{4}(-\d\d){2}T(\d\d:){2}\d\d\.\d{3}Z$/.test(v[id].date) &&
+            typeof(v[id].title) === 'string' &&
+            typeof(v[id].image) === 'string'
           )) return false;
         }
         return true;
@@ -108,8 +113,11 @@ test(('Test submissions.json format'), t => {
           if (user instanceof Object){
             for (let s in user){
               if (!(
-                /^\d{4}-\d\d-\d\d$/.test(s) &&
-                typeof(user[s].topic) === 'string' &&
+                ////// old format
+                // /^\d{4}-\d\d-\d\d$/.test(s) &&
+                // typeof(user[s].topic) === 'string' &&
+                // typeof(user[s].url) === 'string'
+                /^\d+$/.test(s) &&
                 typeof(user[s].url) === 'string'
               )) return false; 
             }

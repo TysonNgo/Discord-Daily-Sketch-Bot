@@ -70,8 +70,8 @@ client.login(process.env.DISCORD_TOKEN);
         "10058": null // this is where the IDs that have already been used go
     },
     "topics": {
-        "YYYY-MM-DD": {
-            "id": 1, // Anilist ID
+        "1": { // Anilist ID
+            "date": "2018-03-12T00:00:00.000Z",
             "image": "https://cdn.anilist.co/img/dir/anime/reg/1.jpg", // URL of anime cover
             "title": "Cowboy Bebop" // English title of the anime
         }
@@ -85,8 +85,7 @@ client.login(process.env.DISCORD_TOKEN);
 {
     "submissions": {
         "100000000000000000": { // Discord user ID
-            "YYYY-MM-DD": {
-                "topic": "Cowboy Bebop",
+            "1": {
                 "url": "https://link_to_your_image"
             }
         }
