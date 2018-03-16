@@ -126,29 +126,38 @@ module.exports = class DailySketch {
         } 
       }),
       new Command({
-        regex: `^${prefix}submissions <@!?(\\d+)>( (\\d{4}-\\d\\d-\\d\\d))?$`,
+        regex: `^${prefix}submissions <@!?(\\d+)>( (\\d+))?$`,
         description: `\`${prefix}submissions @<user> <submission date>\` - shows `+
                      `the submission by the user at a given date\n`+
                      `    you can see the topics of a given date with ${prefix}topics`,
         execute: (message, matches) =>{
           let user_id = matches[1];
-          let date = matches[3];
+          let anilist_id = matches[3];
           let sub = submissions.submissions;
 
-          if (date){
-            if (sub.hasOwnProperty(user_id) && sub[user_id].hasOwnProperty(date)){
+
+          if (anilist_id){
+            if (sub.hasOwnProperty(user_id) && sub[user_id].hasOwnProperty(anilist_id)){
+		          let topic = topics.topics[anilist_id];
+		          let date = topic.date.split('T')[0];
+		          let title = topic.title;
               return message.reply(
-                `\n${date} - ${submissions.submissions[user_id][date].topic}\n`+
-                `${submissions.submissions[user_id][date].url}`);
+                `\n**[${date}]** \`${anilist_id}\` - ${title}\n`+
+                `${sub[user_id][anilist_id].url}`);
             } else {
-              return message.reply(`The user has not submitted a sketch on ${date}.`);
+              return message.reply(`The user has not submitted a sketch for id: \`${anilist_id}.\``);
             }
           } else if (sub.hasOwnProperty(user_id)){
-            let result = '\n';
-            for (let topic in sub[user_id]){
-              result += `\`${topic}\` - ${sub[user_id][topic].topic}\n`;
+            let topic = topics.topics;
+            let theTopics = [];
+            for (let a_id in sub[user_id]){
+              theTopics.push(`**[${topic[a_id].date.split('T')[0]}]** \`${a_id}\` - ${topic[a_id].title}`);
             }
-            return message.reply(result);
+
+            theTopics.sort();
+            let msg = '\n'+theTopics.join('\n');
+
+            return message.reply(msg);
           } else {
             return message.reply(`The user has not submitted any sketches.`);
           }
