@@ -22,8 +22,6 @@ module.exports = class DailySketch {
       throw new Error('Anilist client ID or client secret was not provided.');
     }
 
-
-
     this._anilist = new AniListApi({
       client_id: anilist_client_id,
       client_secret: anilist_client_secret
@@ -192,9 +190,8 @@ module.exports = class DailySketch {
         }
 
         // save today's topic
-        let dateToday = this.getDate();
-        topics.topics[dateToday] = {
-          id: random_id,
+        topics.topics[random_id] = {
+          date: this.getDate(),
           title: res.title_english,
           image: res.image_url_lge
         };
@@ -213,10 +210,7 @@ module.exports = class DailySketch {
   }
 
   getDate(){
-    let d = new Date();
-    return d.getFullYear() + "-" +
-     ("0"+(d.getMonth()+1)).slice(-2) + "-" +
-    ("0" + d.getDate()).slice(-2);
+    return new Date().toJSON();
   }
 
   _saveJSON(filename, obj){
