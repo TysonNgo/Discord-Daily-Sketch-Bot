@@ -66,13 +66,33 @@ module.exports = class DailySketch {
         regex: `^${prefix}topics$`,
         description: `\`${prefix}topics\` - lists the previous topics`,
         execute: (message) => {
+          let topicMap = {};
           let topicList = [];
 
           for (var id in topics.topics){
-            topicList.push(`**[${topics.topics[id].date.split('T')[0]}]** \`${id}\` - ${topics.topics[id].title}`);
+            let date = topics.topics[id].date.split('T')[0];
+            if (topicMap.hasOwnProperty(date)){
+              let date1 = topicMap[date].date;
+              let date2 = new Date(topics.topics[id].date);
+
+              if (date2 > date1){
+                topicMap[date] = {
+                  date: date2,
+                  title: `\`${id}\` - ${topics.topics[id].title}`
+                }  
+              }
+            } else {
+              topicMap[date] = {
+                date: new Date(topics.topics[id].date),
+                title: `\`${id}\` - ${topics.topics[id].title}`
+              }
+            }
           }
 
-          topicList.sort();
+          let keys = Object.keys(topicMap).sort();
+          for (let i = 0; i < keys.length; i++){
+            topicList.push(`**[${keys[i]}]** ${topicMap[keys[i]].title}`);
+          }
 
           message.channel.send(topicList.join('\n'));
         }
