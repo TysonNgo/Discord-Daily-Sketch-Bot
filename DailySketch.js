@@ -28,7 +28,6 @@ module.exports = class DailySketch {
     });
     this._bot = discord_client;
 
-    this._newTopicTime = cronParser.parseExpression(CONFIG.new_topic_time);
     // posts a new topic at midnight
     this._schedule = schedule.scheduleJob(CONFIG.new_topic_time, ()=>{
       this.postRandomTopic();
@@ -54,8 +53,9 @@ module.exports = class DailySketch {
         description: `\`${prefix}topic\` - displays today's topic`,
         execute: (message) => {
           let t = this.getLatestTopic();
+          let newTopicTime = cronParser.parseExpression(CONFIG.new_topic_time);
           let hoursLeftTilReset = 
-            Math.ceil((this._newTopicTime.next()._date - new Date())/3600000);
+            Math.ceil((newTopicTime.next()._date - new Date())/3600000);
           message.channel.send(
           	`**Under ${hoursLeftTilReset} ` +
           	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
