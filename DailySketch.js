@@ -5,7 +5,7 @@ const schedule = require('node-schedule');
 const util = require('util');
 const fs_writeFile = util.promisify(fs.writeFile);
 const Command = require('./Command');
-
+const paginate = require('./paginate');
 
 // JSONs
 const CONFIG = require('./jsons/config');
@@ -64,7 +64,7 @@ module.exports = class DailySketch {
       }),
       new Command({
         regex: `^${prefix}topics$`,
-        description: `\`${prefix}topics\` - lists the previous topics`,
+        description: `\`${prefix}topics\` - lists the all the topics`,
         execute: (message) => {
           let topicMap = {};
           let topicList = [];
@@ -91,10 +91,10 @@ module.exports = class DailySketch {
 
           let keys = Object.keys(topicMap).sort();
           for (let i = 0; i < keys.length; i++){
-            topicList.push(`**[${keys[i]}]** ${topicMap[keys[i]].title}`);
+            topicList.push(`[${keys[i]}] ${topicMap[keys[i]].title}`);
           }
 
-          message.channel.send(topicList.join('\n'));
+          paginate(message, topicList);
         }
       }),
       new Command({
@@ -144,7 +144,7 @@ module.exports = class DailySketch {
       }),
       new Command({
         regex: `^${prefix}submissions <@!?(\\d+)>( (\\d+))?$`,
-        description: `\`${prefix}submissions @<user> <submission date>\` - shows `+
+        description: `\`${prefix}submissions @<user> <id>\` - shows `+
                      `the submission by the user at a given date\n`+
                      `    you can see the topics of a given date with ${prefix}topics`,
         execute: (message, matches) =>{
@@ -168,13 +168,11 @@ module.exports = class DailySketch {
             let topic = topics.topics;
             let theTopics = [];
             for (let a_id in sub[user_id]){
-              theTopics.push(`**[${topic[a_id].date.split('T')[0]}]** \`${a_id}\` - ${topic[a_id].title}`);
+              theTopics.push(`[${topic[a_id].date.split('T')[0]}] \`${a_id}\` - ${topic[a_id].title}`);
             }
 
             theTopics.sort();
-            let msg = '\n'+theTopics.join('\n');
-
-            return message.reply(msg);
+            paginate(message, theTopics);
           } else {
             return message.reply(`The user has not submitted any sketches.`);
           }
