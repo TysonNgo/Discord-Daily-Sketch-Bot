@@ -1,6 +1,7 @@
 const AniListApi = require('anilist-api-pt');
 const cronParser = require('cron-parser');
 const fs = require('fs');
+const path = require('path');
 const schedule = require('node-schedule');
 const util = require('util');
 const fs_writeFile = util.promisify(fs.writeFile);
@@ -54,12 +55,13 @@ module.exports = class DailySketch {
         execute: (message) => {
           let t = this.getLatestTopic();
           let newTopicTime = cronParser.parseExpression(CONFIG.new_topic_time);
+          let img = this.getNewImgURL(t.topic.image);
           let hoursLeftTilReset = 
             Math.ceil((newTopicTime.next()._date - new Date())/3600000);
           message.channel.send(
           	`**Under ${hoursLeftTilReset} ` +
           	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
-          	`${t.topic.title}\n${t.topic.image}`);
+          	`${t.topic.title}\n${img}`);
         }
       }),
       new Command({
@@ -221,7 +223,8 @@ module.exports = class DailySketch {
         };
         this._saveJSON('topics', topics);
 
-        var msg = `${res.title_english}\n${res.image_url_lge}`;
+        let img = this.getNewImgURL(res.image_url_lge);
+        let msg = `${res.title_english}\n${img}`;
 
 
         let channel = this._bot.channels.get(CONFIG.channel_id);
@@ -231,6 +234,14 @@ module.exports = class DailySketch {
     }).catch(err=>{
       return this.postRandomTopic();
     });
+  }
+
+  getNewImgURL(oldURL){
+    /*
+      hacky fix
+    */
+    let img = path.basename(oldURL);
+    return 'https://s3.anilist.co/media/anime/cover/medium/'+img;
   }
 
   getDate(){
