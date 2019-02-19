@@ -241,7 +241,8 @@ module.exports = class DailySketch {
       hacky fix
     */
     let img = path.basename(oldURL);
-    return 'https://s3.anilist.co/media/anime/cover/medium/'+img;
+    //return 'https://s3.anilist.co/media/anime/cover/medium/'+img;
+    return 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/'+img;
   }
 
   getDate(){
