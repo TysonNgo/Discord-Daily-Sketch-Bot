@@ -1,4 +1,3 @@
-const AniListApi = require('anilist-api-pt');
 const cronParser = require('cron-parser');
 const fs = require('fs');
 const path = require('path');
@@ -13,20 +12,42 @@ const CONFIG = require('./jsons/config');
 var topics = require('./jsons/topics');
 var submissions = require('./jsons/submissions');
 
+const https = require('https');
+const { JSDOM } = require('jsdom');
+function getMALChar(id){
+  return new Promise((resolve, reject) => {
+    https.get(`https://myanimelist.net/character/${id}`, res => {
+      let html = '';
+      res.on('data', chunk => {
+        html += chunk;
+      })
+      res.on('end', () => {
+        if (/class="badresult"/.test(html)){
+          return reject('Page does not exist');
+        }
+        const dom = new JSDOM(html);
+        let ret = {
+          title_english: dom.window.document.querySelector('#content .breadcrumb + .normal_header').textContent,
+          image_url_lge: `https://myanimelist.net/character/${id}`
+          /*
+          image_url_lge: dom.window.document.querySelector(`a[href^="/character/${id}"]`)
+            .querySelector('img').src
+          */
+        }
+        resolve(ret);
+      })
+    }).on('error', err => {
+      reject(err);
+    })
+  })
+}
 
 module.exports = class DailySketch {
-  constructor({discord_client, anilist_client_id, anilist_client_secret} = {}) {
+  constructor({discord_client} = {}) {
     if (!discord_client){
       throw new Error('Discord.Client was not provided.');
     }
-    if (!anilist_client_id || !anilist_client_secret){
-      throw new Error('Anilist client ID or client secret was not provided.');
-    }
 
-    this._anilist = new AniListApi({
-      client_id: anilist_client_id,
-      client_secret: anilist_client_secret
-    });
     this._bot = discord_client;
 
     // posts a new topic at midnight
@@ -207,14 +228,8 @@ module.exports = class DailySketch {
     // add random_id to the ids that have already been done
     topics.done[random_id] = null;
 
-    return this._anilist.auth().then(res=>{
-      return this._anilist.anime.getAnime(random_id)
+    return getMALChar(random_id)
       .then(res=>{
-        // exclude mangas, adult anime, and movies
-        if (res.adult || res.series_type === 'manga' || res.type === 'Movie'){
-          return this.postRandomTopic()
-        }
-
         // save today's topic
         topics.topics[random_id] = {
           date: this.getDate(),
@@ -231,18 +246,13 @@ module.exports = class DailySketch {
         channel.send(msg);
         channel.setTopic(`Today's topic: ${res.title_english}`);
       })
-    }).catch(err=>{
-      return this.postRandomTopic();
-    });
+      .catch(err=>{
+        return this.postRandomTopic();
+      });
   }
 
   getNewImgURL(oldURL){
-    /*
-      hacky fix
-    */
-    let img = path.basename(oldURL);
-    //return 'https://s3.anilist.co/media/anime/cover/medium/'+img;
-    return 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/'+img;
+    return oldURL;
   }
 
   getDate(){

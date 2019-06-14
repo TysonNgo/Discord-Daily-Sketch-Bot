@@ -4,9 +4,7 @@ const client = new Discord.Client();
 const DailySketch = require('./DailySketch.js')
 
 const ds = new DailySketch({
-	discord_client: client,
-	anilist_client_id: process.env.ANILIST_CLIENT_ID,
-	anilist_client_secret: process.env.ANILIST_CLIENT_SECRET
+	discord_client: client
 });
 
 client.on('ready', ()=>{
