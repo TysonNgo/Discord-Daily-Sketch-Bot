@@ -13,33 +13,57 @@ var topics = require('./jsons/topics');
 var submissions = require('./jsons/submissions');
 
 const https = require('https');
-const { JSDOM } = require('jsdom');
-function getMALChar(id){
+function getTagsArray(){
+  const url = `https://danbooru.donmai.us/tags.json?limit=1000&page=${Math.floor(Math.random()*379+1)}`;
+
   return new Promise((resolve, reject) => {
-    https.get(`https://myanimelist.net/character/${id}`, res => {
+    https.get(url, res => {
       let html = '';
       res.on('data', chunk => {
         html += chunk;
       })
       res.on('end', () => {
-        if (/class="badresult"/.test(html)){
-          return reject('Page does not exist');
-        }
-        const dom = new JSDOM(html);
-        let ret = {
-          title_english: dom.window.document.querySelector('#content .breadcrumb + .normal_header').textContent,
-          image_url_lge: `https://myanimelist.net/character/${id}`
-          /*
-          image_url_lge: dom.window.document.querySelector(`a[href^="/character/${id}"]`)
-            .querySelector('img').src
-          */
-        }
-        resolve(ret);
+        resolve(JSON.parse(html));
       })
     }).on('error', err => {
       reject(err);
     })
   })
+}
+
+function sleep(t){
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, t*1000);
+  })
+}
+
+async function getTopicTags(){
+  let tags = new Set();
+  while (tags.size < 6){
+    let t = [];
+    while (t.length < 1){
+      t = await getTagsArray();
+      let tag = t[Math.floor(Math.random()*t.length)];
+      if (tag.related_tags){
+        let r_tags = tag.related_tags.split(' ').filter((a, i) => !(i & 1));
+        tags.add(r_tags[Math.floor(Math.random()*r_tags.length)])
+        if (tags.size >= 6) break;
+        tags.add(r_tags[Math.floor(Math.random()*r_tags.length)])
+        if (tags.size >= 6) break;
+      }
+    }
+    await sleep(1);
+  }
+
+
+  let ret = {
+    title_english: '',
+    // not actually an image, but I don't want to change how everything works
+    image_url_lge:
+      '**Draw something that fits under one or more of these tags**:\n'+
+      Array.from(tags).map(t => `[${t}](https://danbooru.donmai.us/posts?tags=${t})`).join('\n')
+  }
+  return ret;
 }
 
 module.exports = class DailySketch {
@@ -79,10 +103,16 @@ module.exports = class DailySketch {
           let img = this.getNewImgURL(t.topic.image);
           let hoursLeftTilReset = 
             Math.ceil((newTopicTime.next()._date - new Date())/3600000);
-          message.channel.send(
-          	`**Under ${hoursLeftTilReset} ` +
-          	`hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n`+
-          	`${t.topic.title}\n${img}`);
+          message.channel.send({
+            embed: {
+              title: t.topic.title,
+              description:
+                `**Under ${hoursLeftTilReset} ` +
+                `hour${hoursLeftTilReset > 1 ? 's' : ''} until the next topic**\n\n` +
+                img,
+              color: 0xae9f80
+            }
+          });
         }
       }),
       new Command({
@@ -228,7 +258,7 @@ module.exports = class DailySketch {
     // add random_id to the ids that have already been done
     topics.done[random_id] = null;
 
-    return getMALChar(random_id)
+    return getTopicTags()
       .then(res=>{
         // save today's topic
         topics.topics[random_id] = {
@@ -243,7 +273,13 @@ module.exports = class DailySketch {
 
 
         let channel = this._bot.channels.get(CONFIG.channel_id);
-        channel.send(msg);
+        channel.send({
+          embed: {
+            title: '',
+            description: res.image_url_lge,
+            color: 0xae9f80
+          }
+        });
         channel.setTopic(`Today's topic: ${res.title_english}`);
       })
       .catch(err=>{
